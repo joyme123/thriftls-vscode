@@ -8,13 +8,13 @@
         "theme": "dark"
     },
     "license": "MIT",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "repository": {
         "type": "git",
-        "url": "https://github.com/joyme12/thriftls-vscode"
+        "url": "https://github.com/joyme123/thriftls-vscode"
     },
     "bugs": {
-        "url": "https://github.com/joyme12/thriftls-vscode/issues"
+        "url": "https://github.com/joyme123/thriftls-vscode/issues"
     },
     "publisher": "jiangpengfei",
     "categories": [
