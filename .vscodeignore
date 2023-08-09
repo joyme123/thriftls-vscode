@@ -1,0 +1,7 @@
+**/*.ts
+**/tsconfig.json
+.vscode
+node_modules
+client/src/
+tsconfig.json
+webpack.config.js

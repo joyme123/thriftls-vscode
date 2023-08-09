@@ -1,0 +1,103 @@
+{
+    "name": "thrift-language-server",
+    "description": "A thrift language server",
+    "author": "jiangpengfei12@gmail.com",
+    "icon": "logo.png",
+    "galleryBanner": {
+        "color": "#22172A",
+        "theme": "dark"
+    },
+    "license": "MIT",
+    "version": "1.0.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/joyme12/thriftls-vscode"
+    },
+    "bugs": {
+        "url": "https://github.com/joyme12/thriftls-vscode/issues"
+    },
+    "publisher": "jiangpengfei",
+    "categories": [
+        "Programming Languages",
+        "Formatters",
+        "Linters",
+        "Other"
+    ],
+    "keywords": [
+        "thrift",
+        "lsp"
+    ],
+    "engines": {
+        "vscode": "^1.63.0"
+    },
+    "activationEvents": [
+        "onLanguage:thrift"
+    ],
+    "main": "./client/out/extension",
+    "contributes": {
+        "languages": [
+            {
+                "id": "thrift",
+                "aliases": [
+                    "Thrift",
+                    "thrift"
+                ],
+                "extensions": [
+                    ".thrift"
+                ]
+            }
+        ],
+        "grammars": [
+            {
+                "language": "thrift",
+                "scopeName": "source.thrift",
+                "path": "./client/out/syntaxes/thrift.tmGrammar.json"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "thrift language server configuration",
+            "properties": {
+                "thriftls.enable": {
+                    "scope": "resource",
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Controls the enablement."
+                },
+                "thriftls.options": {
+                    "scope": "resource",
+                    "type": "object",
+                    "default": {},
+                    "description": "Additional options."
+                },
+                "thriftls.trace.server": {
+                    "scope": "window",
+                    "type": "string",
+                    "enum": [
+                        "off",
+                        "messages",
+                        "verbose"
+                    ],
+                    "default": "verbose",
+                    "description": "Traces the communication between VSCode and the language server."
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -b && cp -r ./client/syntaxes client/out",
+        "watch": "tsc -b -w",
+        "lint": "eslint ./client/src --ext .ts,.tsx",
+        "postinstall": "cd client && npm install && cd .."
+    },
+    "devDependencies": {
+        "@types/mocha": "^5.2.0",
+        "@types/node": "^16.18.34",
+        "@typescript-eslint/eslint-plugin": "^5.42.0",
+        "@typescript-eslint/parser": "^5.42.0",
+        "eslint": "^8.26.0",
+        "js-yaml": "^4.1.0",
+        "typescript": "^5.1.3"
+    }
+}
