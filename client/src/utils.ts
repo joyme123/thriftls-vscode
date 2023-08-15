@@ -3,6 +3,7 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as http from 'http';
+import * as path from 'path';
 import * as https from 'https';
 import { extname } from 'path';
 import * as url from 'url';
@@ -29,184 +30,194 @@ const userAgentHeader = { 'User-Agent': 'vscode-thriftls' };
 const inFlightDownloads = new Map<string, Map<string, Thenable<void>>>();
 
 export async function httpsGetSilently(options: https.RequestOptions): Promise<string> {
-  const opts: https.RequestOptions = {
-    ...options,
-    headers: {
-      ...(options.headers ?? {}),
-      ...userAgentHeader,
-    },
-  };
+    const opts: https.RequestOptions = {
+        ...options,
+        headers: {
+            ...(options.headers ?? {}),
+            ...userAgentHeader,
+        },
+    };
 
-  return new Promise((resolve, reject) => {
-    let data: string = '';
-    https
-      .get(opts, (res) => {
-        if (res.statusCode === 301 || res.statusCode === 302) {
-          if (!res.headers.location) {
-            console.error('301/302 without a location header');
-            return;
-          }
-          https.get(res.headers.location, (resAfterRedirect) => {
-            resAfterRedirect.on('data', (d) => (data += d));
-            resAfterRedirect.on('error', reject);
-            resAfterRedirect.on('close', () => {
-              resolve(data);
-            });
-          });
-        } else {
-          res.on('data', (d) => (data += d));
-          res.on('error', reject);
-          res.on('close', () => {
-            resolve(data);
-          });
-        }
-      })
-      .on('error', reject);
-  });
+    return new Promise((resolve, reject) => {
+        let data: string = '';
+        https
+            .get(opts, (res) => {
+                if (res.statusCode === 301 || res.statusCode === 302) {
+                    if (!res.headers.location) {
+                        console.error('301/302 without a location header');
+                        return;
+                    }
+                    https.get(res.headers.location, (resAfterRedirect) => {
+                        resAfterRedirect.on('data', (d) => (data += d));
+                        resAfterRedirect.on('error', reject);
+                        resAfterRedirect.on('close', () => {
+                            resolve(data);
+                        });
+                    });
+                } else {
+                    res.on('data', (d) => (data += d));
+                    res.on('error', reject);
+                    res.on('close', () => {
+                        resolve(data);
+                    });
+                }
+            })
+            .on('error', reject);
+    });
 }
 
 async function ignoreFileNotExists(err: NodeJS.ErrnoException): Promise<void> {
-  if (err.code === 'ENOENT') {
-    return;
-  }
-  throw err;
+    if (err.code === 'ENOENT') {
+        return;
+    }
+    throw err;
 }
 
-export async function downloadFile(titleMsg: string, src: string, dest: string): Promise<void> {
-  // Check to see if we're already in the process of downloading the same thing
-  const inFlightDownload = inFlightDownloads.get(src)?.get(dest);
-  if (inFlightDownload) {
-    return inFlightDownload;
-  }
+export async function downloadFile(titleMsg: string, src: string, destDir: string, dest: string, version: string): Promise<void> {
+    // Check to see if we're already in the process of downloading the same thing
+    const inFlightDownload = inFlightDownloads.get(src)?.get(dest);
+    if (inFlightDownload) {
+        return inFlightDownload;
+    }
 
-  // If it already is downloaded just use that
-  if (fs.existsSync(dest)) {
-    return;
-  }
+    const versionFile = path.join(destDir, "version")
+    let versionExist = false
+    if (fs.existsSync(versionFile)) {
+        let readVersion: string = fs.readFileSync(versionFile, "utf-8")
+        if (readVersion == version) {
+            versionExist = true
+        }
+    }
 
-  // Download it to a .tmp location first, then rename it!
-  // This way if the download fails halfway through or something then we know
-  // to delete it and try again
-  const downloadDest = dest + '.download';
-  if (fs.existsSync(downloadDest)) {
-    fs.unlinkSync(downloadDest);
-  }
+    // If it already is downloaded just use that
+    if (fs.existsSync(dest) && versionExist) {
+        return;
+    }
 
-  const downloadTask = window.withProgress(
-    {
-      location: ProgressLocation.Notification,
-      title: titleMsg,
-      cancellable: false,
-    },
-    async (progress) => {
-      const p = new Promise<void>((resolve, reject) => {
-        const srcUrl = url.parse(src);
-        const opts: https.RequestOptions = {
-          host: srcUrl.host,
-          path: srcUrl.path,
-          protocol: srcUrl.protocol,
-          port: srcUrl.port,
-          headers: userAgentHeader,
-        };
-        getWithRedirects(opts, (res) => {
-          const totalSize = parseInt(res.headers['content-length'] || '1', 10);
-          const fileStream = fs.createWriteStream(downloadDest, { mode: 0o744 });
-          let curSize = 0;
+    // Download it to a .tmp location first, then rename it!
+    // This way if the download fails halfway through or something then we know
+    // to delete it and try again
+    const downloadDest = dest + '.download';
+    if (fs.existsSync(downloadDest)) {
+        fs.unlinkSync(downloadDest);
+    }
 
-          // Decompress it if it's a gzip or zip
-          const needsGunzip =
-            res.headers['content-type'] === 'application/gzip' || extname(srcUrl.path ?? '') === '.gz';
-          const needsUnzip = res.headers['content-type'] === 'application/zip' || extname(srcUrl.path ?? '') === '.zip';
-          if (needsGunzip) {
-            const gunzip = createGunzip();
-            gunzip.on('error', reject);
-            res.pipe(gunzip).pipe(fileStream);
-          } else if (needsUnzip) {
-            const zipDest = downloadDest + '.zip';
-            const zipFs = fs.createWriteStream(zipDest);
-            zipFs.on('error', reject);
-            zipFs.on('close', () => {
-              yazul.open(zipDest, (err, zipfile) => {
-                if (err) {
-                  throw err;
-                }
-                if (!zipfile) {
-                  throw Error("Couldn't decompress zip");
-                }
+    const downloadTask = window.withProgress(
+        {
+            location: ProgressLocation.Notification,
+            title: titleMsg,
+            cancellable: false,
+        },
+        async (progress) => {
+            const p = new Promise<void>((resolve, reject) => {
+                const srcUrl = url.parse(src);
+                const opts: https.RequestOptions = {
+                    host: srcUrl.host,
+                    path: srcUrl.path,
+                    protocol: srcUrl.protocol,
+                    port: srcUrl.port,
+                    headers: userAgentHeader,
+                };
+                getWithRedirects(opts, (res) => {
+                    const totalSize = parseInt(res.headers['content-length'] || '1', 10);
+                    const fileStream = fs.createWriteStream(downloadDest, { mode: 0o744 });
+                    let curSize = 0;
 
-                // We only expect *one* file inside each zip
-                zipfile.on('entry', (entry: yazul.Entry) => {
-                  zipfile.openReadStream(entry, (err2, readStream) => {
-                    if (err2) {
-                      throw err2;
+                    // Decompress it if it's a gzip or zip
+                    const needsGunzip =
+                        res.headers['content-type'] === 'application/gzip' || extname(srcUrl.path ?? '') === '.gz';
+                    const needsUnzip = res.headers['content-type'] === 'application/zip' || extname(srcUrl.path ?? '') === '.zip';
+                    if (needsGunzip) {
+                        const gunzip = createGunzip();
+                        gunzip.on('error', reject);
+                        res.pipe(gunzip).pipe(fileStream);
+                    } else if (needsUnzip) {
+                        const zipDest = downloadDest + '.zip';
+                        const zipFs = fs.createWriteStream(zipDest);
+                        zipFs.on('error', reject);
+                        zipFs.on('close', () => {
+                            yazul.open(zipDest, (err, zipfile) => {
+                                if (err) {
+                                    throw err;
+                                }
+                                if (!zipfile) {
+                                    throw Error("Couldn't decompress zip");
+                                }
+
+                                // We only expect *one* file inside each zip
+                                zipfile.on('entry', (entry: yazul.Entry) => {
+                                    zipfile.openReadStream(entry, (err2, readStream) => {
+                                        if (err2) {
+                                            throw err2;
+                                        }
+                                        readStream?.pipe(fileStream);
+                                    });
+                                });
+                            });
+                        });
+                        res.pipe(zipFs);
+                    } else {
+                        res.pipe(fileStream);
                     }
-                    readStream?.pipe(fileStream);
-                  });
-                });
-              });
+
+                    function toMB(bytes: number) {
+                        return bytes / (1024 * 1024);
+                    }
+
+                    res.on('data', (chunk: Buffer) => {
+                        curSize += chunk.byteLength;
+                        const msg = `${toMB(curSize).toFixed(1)}MB / ${toMB(totalSize).toFixed(1)}MB`;
+                        progress.report({ message: msg, increment: (chunk.length / totalSize) * 100 });
+                    });
+                    res.on('error', reject);
+                    fileStream.on('close', resolve);
+                }).on('error', reject);
             });
-            res.pipe(zipFs);
-          } else {
-            res.pipe(fileStream);
-          }
+            try {
+                await p;
+                // Finally rename it to the actual dest
+                fs.renameSync(downloadDest, dest);
+                fs.writeFileSync(versionFile, version)
+            } finally {
+                // And remember to remove it from the list of current downloads
+                inFlightDownloads.get(src)?.delete(dest);
+            }
+        }
+    );
 
-          function toMB(bytes: number) {
-            return bytes / (1024 * 1024);
-          }
-
-          res.on('data', (chunk: Buffer) => {
-            curSize += chunk.byteLength;
-            const msg = `${toMB(curSize).toFixed(1)}MB / ${toMB(totalSize).toFixed(1)}MB`;
-            progress.report({ message: msg, increment: (chunk.length / totalSize) * 100 });
-          });
-          res.on('error', reject);
-          fileStream.on('close', resolve);
-        }).on('error', reject);
-      });
-      try {
-        await p;
-        // Finally rename it to the actual dest
-        fs.renameSync(downloadDest, dest);
-      } finally {
-        // And remember to remove it from the list of current downloads
-        inFlightDownloads.get(src)?.delete(dest);
-      }
+    try {
+        if (inFlightDownloads.has(src)) {
+            inFlightDownloads.get(src)?.set(dest, downloadTask);
+        } else {
+            inFlightDownloads.set(src, new Map([[dest, downloadTask]]));
+        }
+        return await downloadTask;
+    } catch (e) {
+        await promisify(fs.unlink)(downloadDest).catch(ignoreFileNotExists);
+        throw new Error(`Failed to download ${src}:\n${e.message}`);
     }
-  );
-
-  try {
-    if (inFlightDownloads.has(src)) {
-      inFlightDownloads.get(src)?.set(dest, downloadTask);
-    } else {
-      inFlightDownloads.set(src, new Map([[dest, downloadTask]]));
-    }
-    return await downloadTask;
-  } catch (e) {
-    await promisify(fs.unlink)(downloadDest).catch(ignoreFileNotExists);
-    throw new Error(`Failed to download ${src}:\n${e.message}`);
-  }
 }
 
 function getWithRedirects(opts: https.RequestOptions, f: (res: http.IncomingMessage) => void): http.ClientRequest {
-  return https.get(opts, (res) => {
-    if (res.statusCode === 301 || res.statusCode === 302) {
-      if (!res.headers.location) {
-        console.error('301/302 without a location header');
-        return;
-      }
-      https.get(res.headers.location, f);
-    } else {
-      f(res);
-    }
-  });
+    return https.get(opts, (res) => {
+        if (res.statusCode === 301 || res.statusCode === 302) {
+            if (!res.headers.location) {
+                console.error('301/302 without a location header');
+                return;
+            }
+            https.get(res.headers.location, f);
+        } else {
+            f(res);
+        }
+    });
 }
 
 /*
  * Checks if the executable is on the PATH
  */
 export function executableExists(exe: string): boolean {
-  const isWindows = process.platform === 'win32';
-  const cmd: string = isWindows ? 'where' : 'which';
-  const out = child_process.spawnSync(cmd, [exe]);
-  return out.status === 0 || (isWindows && fs.existsSync(exe));
+    const isWindows = process.platform === 'win32';
+    const cmd: string = isWindows ? 'where' : 'which';
+    const out = child_process.spawnSync(cmd, [exe]);
+    return out.status === 0 || (isWindows && fs.existsSync(exe));
 }

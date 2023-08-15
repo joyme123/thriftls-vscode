@@ -12,3 +12,4 @@ with `high performance` and many features.
 - hover
 - dignostic
 - rename
+- format
