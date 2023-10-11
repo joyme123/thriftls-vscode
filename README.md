@@ -14,4 +14,6 @@ with `high performance` and many features.
 - rename
 - format
 
-![demo](demo.gif)
+<video width="720" height="432" controls>
+    <source src="demo.webm" type="video/webm">
+</video>
