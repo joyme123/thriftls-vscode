@@ -15,5 +15,5 @@ with `high performance` and many features.
 - format
 
 <video width="720" height="432" controls>
-    <source src="demo.webm" type="video/webm">
+    <source src="demo.mp4" type="video/md4">
 </video>
