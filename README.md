@@ -14,10 +14,5 @@ with `high performance` and many features.
 - rename
 - format
 
-<video width="720" height="432" controls>
-    <source src="demo.mp4" type="video/md4">
-</video>
-
-
 https://github.com/joyme123/thriftls-vscode/assets/12330420/fbdb2346-9b3c-4831-988b-268f1ce5dcb8
 
