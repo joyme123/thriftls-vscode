@@ -13,3 +13,5 @@ with `high performance` and many features.
 - dignostic
 - rename
 - format
+
+![demo](demo.gif)
