@@ -8,7 +8,7 @@
         "theme": "dark"
     },
     "license": "MIT",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "repository": {
         "type": "git",
         "url": "https://github.com/joyme123/thriftls-vscode"
@@ -58,21 +58,40 @@
             "type": "object",
             "title": "thrift language server configuration",
             "properties": {
-                "thriftls.enable": {
+                "thriftls.fmt.align": {
                     "scope": "resource",
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Controls the enablement."
+                    "order": 0,
+                    "type": "string",
+                    "default": "field",
+                    "enum": [
+                        "field",
+                        "assign",
+                        "disable"
+                    ],
+                    "description": "format align type"
                 },
-                "thriftls.options": {
+                "thriftls.fmt.indent.type": {
                     "scope": "resource",
-                    "type": "object",
-                    "default": {},
-                    "description": "Additional options."
+                    "type": "string",
+                    "default": "space",
+                    "order": 1,
+                    "enum": [
+                        "space",
+                        "tab"
+                    ],
+                    "description": "indent type"
+                },
+                "thriftls.fmt.indent.num": {
+                    "scope": "resource",
+                    "type": "integer",
+                    "default": 4,
+                    "order": 2,
+                    "description": "indent num"
                 },
                 "thriftls.trace.server": {
                     "scope": "window",
                     "type": "string",
+                    "order": 3,
                     "enum": [
                         "off",
                         "messages",
