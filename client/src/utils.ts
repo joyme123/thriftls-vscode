@@ -38,6 +38,8 @@ export async function httpsGetSilently(options: https.RequestOptions): Promise<s
         },
     };
 
+    console.log("check release request: ", opts)
+
     return new Promise((resolve, reject) => {
         let data: string = '';
         https

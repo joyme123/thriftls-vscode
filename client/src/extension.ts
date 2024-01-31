@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 import * as path from 'path';
 import {
-    workspace as Workspace, window as Window, ExtensionContext, TextDocument, OutputChannel, WorkspaceFolder, Uri
+    workspace as Workspace, window as Window, commands as Commands, ExtensionContext, TextDocument, OutputChannel, WorkspaceFolder, Uri, extensions
 } from 'vscode';
 import {
     LanguageClient, LanguageClientOptions, TransportKind, ExecutableOptions, ServerOptions
@@ -76,6 +76,27 @@ export async function activate(context: ExtensionContext) {
 
     console.log("setup server options")
 
+    Workspace.onDidChangeConfiguration(event => {
+        if (event.affectsConfiguration("thriftls.fmt")) {
+            Window.showInformationMessage('thriftls configuration changed, please reload!', "reload").then(selection => {
+                if (selection === "reload") {
+                    Commands.executeCommand("workbench.action.reloadWindow");
+                }
+            });;
+        }
+    })
+
+    function getLspServerArgs(): string[] {
+        let configuration = Workspace.getConfiguration()
+        console.log("configuration: ", configuration)
+        let indent_type = configuration.get("thriftls.fmt.indent.type", "space")
+        let indent_num = configuration.get("thriftls.fmt.indent.num", 4)
+        let align = configuration.get("thriftls.fmt.align", "field")
+        console.log("indent_type: ", indent_type, "indent_num: ", indent_num, "align: ", align)
+
+        return ["-indent", indent_num.toString() + indent_type, "-align", align as string]
+    }
+
     function didOpenTextDocument(document: TextDocument): void {
         console.log("didOpenTextDocument", document)
         // We are only interested in language mode text
@@ -97,7 +118,7 @@ export async function activate(context: ExtensionContext) {
             const exeOptions: ExecutableOptions = {
                 cwd: folder ? undefined : path.dirname(uri.fsPath),
             };
-            let args: string[] = [];
+            let args: string[] = getLspServerArgs();
 
             const serverOptions: ServerOptions = {
                 run: { command: binaryPath, transport: TransportKind.stdio, args, options: exeOptions },
