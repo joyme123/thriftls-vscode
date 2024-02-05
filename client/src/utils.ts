@@ -15,7 +15,7 @@ import { createGunzip } from 'zlib';
 /** When making http requests to github.com, use this header otherwise
  * the server will close the request
  */
-const userAgentHeader = { 'User-Agent': 'vscode-thriftls' };
+const userAgentHeader = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36' };
 
 /** downloadFile may get called twice on the same src and destination:
  * When this happens, we should only download the file once but return two

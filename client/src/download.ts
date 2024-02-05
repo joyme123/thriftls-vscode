@@ -14,6 +14,7 @@ interface IRelease {
     assets: IAsset[];
     tag_name: string;
     prerelease: boolean;
+    last_check_time?: number;
 }
 /** GitHub API asset */
 interface IAsset {
@@ -21,7 +22,7 @@ interface IAsset {
     name: string;
 }
 
-type UpdateBehaviour = 'keep-up-to-date' | 'prompt' | 'never-check';
+type UpdateBehaviour = 'keep-up-to-date' | 'prompt' | 'never-check' | 'weekly';
 
 const assetValidator: validate.Validator<IAsset> = validate.object({
     browser_download_url: validate.string(),
@@ -32,6 +33,7 @@ const releaseValidator: validate.Validator<IRelease> = validate.object({
     assets: validate.array(assetValidator),
     tag_name: validate.string(),
     prerelease: validate.boolean(),
+    last_check_time: validate.optional(validate.number())
 });
 
 const githubReleaseApiValidator: validate.Validator<IRelease[]> = validate.array(releaseValidator);
@@ -80,8 +82,18 @@ async function getLatestReleaseMetadata(context: ExtensionContext): Promise<IRel
     const updateBehaviour = workspace.getConfiguration('thriftls').get('updateBehavior') as UpdateBehaviour;
 
     if (updateBehaviour === 'never-check') {
+        console.log("skip check lastest release by api")
         return readCachedReleaseData();
+    } else if (updateBehaviour === 'weekly') {
+        let cached = await readCachedReleaseData();
+        let days = (Date.now() - cached.last_check_time) / (24 * 3600 * 1000)
+        console.log("diff days: ", days)
+        if (days < 7) {
+            console.log("skip check lastest release because days is ", days)
+            return readCachedReleaseData();
+        }
     }
+
 
     try {
         const releaseInfo = await httpsGetSilently(opts);
@@ -107,6 +119,9 @@ async function getLatestReleaseMetadata(context: ExtensionContext): Promise<IRel
                 }
             }
         }
+
+        // set last check time
+        latestInfoParsed.last_check_time = Date.now()
 
         // Cache the latest successfully fetched release information
         await promisify(fs.writeFile)(offlineCache, JSON.stringify(latestInfoParsed), { encoding: 'utf-8' });
@@ -148,14 +163,19 @@ export async function downloadThriftLanguageServer(
     // Fetch the latest release from GitHub or from cache
     const release = await getLatestReleaseMetadata(context);
     if (!release) {
-        let message = "Couldn't find any pre-built thriftls binaries";
+        let message = "Couldn't find any pre-built thriftls binaries because of network error";
         const updateBehaviour = workspace.getConfiguration('thriftls').get('updateBehavior') as UpdateBehaviour;
         if (updateBehaviour === 'never-check') {
             message += ' (and checking for newer versions is disabled)';
+        } else {
+            message += ` you can download thriftls from https://github.com/joyme123/thrift-ls/releases and place it at ${context.globalStorageUri.fsPath}`
         }
+
         window.showErrorMessage(message);
         return null;
     }
+
+    console.log("get release ok");
 
     // When searching for binaries, use startsWith because the compression may differ
     // between .zip and .gz
