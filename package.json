@@ -99,6 +99,19 @@
                     ],
                     "default": "verbose",
                     "description": "Traces the communication between VSCode and the language server."
+                },
+                "thriftls.updateBehavior": {
+                    "scope": "resource",
+                    "type": "string",
+                    "order": 4,
+                    "enum": [
+                        "never-check",
+                        "keep-up-to-date",
+                        "prompt",
+                        "weekly"
+                    ],
+                    "default": "keep-up-to-date",
+                    "description": "Update behavior for thriftls binanry version"
                 }
             }
         }

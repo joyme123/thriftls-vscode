@@ -70,7 +70,7 @@ class MyErrorHandler implements ErrorHandler {
 }
 
 export async function activate(context: ExtensionContext) {
-    console.log('Congratulations, your extension "helloworld-sample" is now active!');
+    console.log('Congratulations, your extension "thrift-language-server" is now active!');
 
     const binaryPath = await downloadThriftLanguageServer(context)
 
