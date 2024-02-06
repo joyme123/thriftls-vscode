@@ -8,7 +8,7 @@
         "theme": "dark"
     },
     "license": "MIT",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "repository": {
         "type": "git",
         "url": "https://github.com/joyme123/thriftls-vscode"
@@ -88,10 +88,22 @@
                     "order": 2,
                     "description": "indent num"
                 },
+                "thriftls.fmt.fieldLineComma": {
+                    "scope": "resource",
+                    "type": "string",
+                    "default": "disable",
+                    "enum": [
+                        "add",
+                        "remove",
+                        "disable"
+                    ],
+                    "order": 3,
+                    "description": "add or remove comma at the end of field line"
+                },
                 "thriftls.trace.server": {
                     "scope": "window",
                     "type": "string",
-                    "order": 3,
+                    "order": 4,
                     "enum": [
                         "off",
                         "messages",
@@ -103,7 +115,7 @@
                 "thriftls.updateBehavior": {
                     "scope": "resource",
                     "type": "string",
-                    "order": 4,
+                    "order": 5,
                     "enum": [
                         "never-check",
                         "keep-up-to-date",

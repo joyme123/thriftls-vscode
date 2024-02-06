@@ -92,9 +92,15 @@ export async function activate(context: ExtensionContext) {
         let indent_type = configuration.get("thriftls.fmt.indent.type", "space")
         let indent_num = configuration.get("thriftls.fmt.indent.num", 4)
         let align = configuration.get("thriftls.fmt.align", "field")
-        console.log("indent_type: ", indent_type, "indent_num: ", indent_num, "align: ", align)
+        let fieldLineComma = configuration.get("thriftls.fmt.fieldLineComma", "disable")
+        console.log(
+            "indent_type: ", indent_type,
+            "indent_num: ", indent_num,
+            "align: ", align,
+            "fieldLineComma: ", fieldLineComma,
+        )
 
-        return ["-indent", indent_num.toString() + indent_type, "-align", align as string]
+        return ["-indent", indent_num.toString() + indent_type, "-align", align as string, "-fieldLineComma", fieldLineComma]
     }
 
     function didOpenTextDocument(document: TextDocument): void {
