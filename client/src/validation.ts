@@ -166,7 +166,7 @@ export function optional<T>(validator: Validator<T>): Validator<T | null> {
 
 export class ValidationError extends Error {
     constructor(public errors: IValidationError[], message?: string) {
-        super(`validation failure: ${errors.length} errors`);
+        super(`validation failure: ${errors.length} errors: ${message}`);
     }
 }
 
@@ -176,5 +176,5 @@ export function parseAndValidate<T>(text: string, validator: Validator<T>): T {
     if (result.success) {
         return result.value;
     }
-    throw new ValidationError(result.errors);
+    throw new ValidationError(result.errors, value['message']);
 }

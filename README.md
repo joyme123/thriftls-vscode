@@ -16,3 +16,18 @@ with `high performance` and many features.
 
 https://github.com/joyme123/thriftls-vscode/assets/12330420/fbdb2346-9b3c-4831-988b-268f1ce5dcb8
 
+# development
+
+```
+npm install -g @vscode/vsce
+
+```
+
+## build and publish
+
+```
+make compile
+make pack
+make publish
+```
+
