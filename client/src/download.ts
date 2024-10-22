@@ -50,19 +50,10 @@ class NoBinariesError extends Error {
     }
 }
 
-async function getLatestReleaseMetadata(context: ExtensionContext): Promise<IRelease | null> {
+async function getLatestReleaseMetadata(context: ExtensionContext, expectAssetName: string): Promise<IRelease | null> {
     const releasesUrl = workspace.getConfiguration('thriftls').releasesURL
         ? url.parse(workspace.getConfiguration('thriftls').releasesURL)
         : undefined;
-    const opts: https.RequestOptions = releasesUrl
-        ? {
-            host: releasesUrl.host,
-            path: releasesUrl.path,
-        }
-        : {
-            host: 'api.github.com',
-            path: '/repos/joyme123/thrift-ls/releases',
-        };
 
     const offlineCache = path.join(context.globalStorageUri.fsPath, 'latestApprovedRelease.cache.json');
 
@@ -96,9 +87,38 @@ async function getLatestReleaseMetadata(context: ExtensionContext): Promise<IRel
 
 
     try {
-        const releaseInfo = await httpsGetSilently(opts);
-        const latestInfoParsed =
-            validate.parseAndValidate(releaseInfo, githubReleaseApiValidator).find((x) => !x.prerelease) || null;
+        let latestInfoParsed: IRelease = null
+        try {
+            const opts: https.RequestOptions = releasesUrl
+                ? {
+                    host: releasesUrl.host,
+                    path: releasesUrl.path,
+                }
+                : {
+                    host: 'api.github.com',
+                    path: '/repos/joyme123/thrift-ls/releases',
+                };
+            const releaseInfo = await httpsGetSilently(opts);
+            latestInfoParsed =
+                validate.parseAndValidate(releaseInfo, githubReleaseApiValidator).find((x) => !x.prerelease) || null;
+        } catch (e) {
+            const opts: https.RequestOptions = {
+                host: 'raw.githubusercontent.com',
+                path: '/joyme123/thrift-ls/refs/heads/main/LATEST_VERSION',
+            };
+            let latestTag = await httpsGetSilently(opts)
+            latestTag = latestTag.trim()
+            latestInfoParsed = {
+                tag_name: latestTag,
+                assets: [
+                    {
+                        name: expectAssetName,
+                        browser_download_url: "https://github.com/joyme123/thrift-ls/releases/download/" + latestTag + "/" + expectAssetName
+                    }
+                ],
+                prerelease: false,
+            }
+        }
 
         if (updateBehaviour === 'prompt') {
             const cachedInfoParsed = await readCachedReleaseData();
@@ -159,9 +179,10 @@ export async function downloadThriftLanguageServer(
         return null;
     }
     const arch = getArch()
+    const assetName = `thriftls-${githubOS}-${arch}${exeExt}`;
 
     // Fetch the latest release from GitHub or from cache
-    const release = await getLatestReleaseMetadata(context);
+    const release = await getLatestReleaseMetadata(context, assetName);
     if (!release) {
         let message = "Couldn't find any pre-built thriftls binaries because of network error";
         const updateBehaviour = workspace.getConfiguration('thriftls').get('updateBehavior') as UpdateBehaviour;
@@ -179,7 +200,6 @@ export async function downloadThriftLanguageServer(
 
     // When searching for binaries, use startsWith because the compression may differ
     // between .zip and .gz
-    const assetName = `thriftls-${githubOS}-${arch}${exeExt}`;
     const asset = release?.assets.find((x) => x.name.startsWith(assetName));
     if (!asset) {
         window.showInformationMessage(new NoBinariesError(release.tag_name).message);
