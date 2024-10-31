@@ -72,7 +72,12 @@ class MyErrorHandler implements ErrorHandler {
 export async function activate(context: ExtensionContext) {
     console.log('Congratulations, your extension "thrift-language-server" is now active!');
 
-    const binaryPath = await downloadThriftLanguageServer(context)
+    let configuration = Workspace.getConfiguration()
+    let binaryPath = configuration.get("thriftls.binaryPath", "")
+
+    if (binaryPath == null || binaryPath == "") {
+        binaryPath = await downloadThriftLanguageServer(context)
+    }
 
     console.log("setup server options")
 

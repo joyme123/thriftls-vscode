@@ -8,7 +8,7 @@
         "theme": "dark"
     },
     "license": "MIT",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "repository": {
         "type": "git",
         "url": "https://github.com/joyme123/thriftls-vscode"
@@ -124,6 +124,13 @@
                     ],
                     "default": "keep-up-to-date",
                     "description": "Update behavior for thriftls binanry version"
+                },
+                "thriftls.binaryPath": {
+                    "scope": "resource",
+                    "type": "string",
+                    "order": 6,
+                    "default": "",
+                    "description": "The thriftls binary path will be downloaded when the extension starts. If the download fails due to network issues, you can download the binary manually from https://github.com/joyme123/thrift-ls/releases, and then set the binary path here. For example: /home/user1/xxxx/thriftls-linux-amd64"
                 }
             }
         }
